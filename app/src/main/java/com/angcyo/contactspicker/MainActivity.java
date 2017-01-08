@@ -6,15 +6,23 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
-import android.widget.ImageView;
+import android.widget.CompoundButton;
+import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.tbruyelle.rxpermissions.RxPermissions;
 
-import rx.functions.Action1;
+import java.util.List;
 
-import static com.angcyo.contactspicker.ContactsPickerHelper.getPhoto;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
+
+    private RRecyclerView mRecyclerView;
+    private RModelAdapter<ContactsPickerHelper.ContactsInfo> mModelAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,8 +30,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        final ImageView imageView = (ImageView) findViewById(R.id.image_view);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -39,13 +45,83 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void call(Boolean aBoolean) {
                                 if (aBoolean) {
-                                    ContactsPickerHelper.getContactsList(MainActivity.this);
-                                    imageView.setImageBitmap(getPhoto(getContentResolver(), "517"));
+//                                    ContactsPickerHelper.getContactsList(MainActivity.this);
+                                    //imageView.setImageBitmap(getPhoto(getContentResolver(), "517"));
+//                                    Glide.with(MainActivity.this).load(getPhotoByte(getContentResolver(), "518"));
+
+                                    ContactsPickerHelper
+                                            .getContactsListObservable(MainActivity.this)
+                                            .subscribeOn(Schedulers.computation())
+                                            .observeOn(AndroidSchedulers.mainThread())
+                                            .subscribe(new Subscriber<List<ContactsPickerHelper.ContactsInfo>>() {
+
+                                                @Override
+                                                public void onStart() {
+                                                    super.onStart();
+                                                    Toast.makeText(MainActivity.this, "开始扫描联系人", Toast.LENGTH_SHORT).show();
+                                                }
+
+                                                @Override
+                                                public void onCompleted() {
+                                                    Toast.makeText(MainActivity.this, "扫描完成", Toast.LENGTH_SHORT).show();
+                                                }
+
+                                                @Override
+                                                public void onError(Throwable e) {
+
+                                                }
+
+                                                @Override
+                                                public void onNext(List<ContactsPickerHelper.ContactsInfo> contactsInfos) {
+                                                    mModelAdapter.resetData(contactsInfos);
+                                                }
+                                            });
                                 }
                             }
                         });
 
             }
         });
+
+        initView();
+    }
+
+    private void initView() {
+        mRecyclerView = (RRecyclerView) findViewById(R.id.recycler_view);
+        mModelAdapter = new RModelAdapter<ContactsPickerHelper.ContactsInfo>(this) {
+
+            @Override
+            protected int getItemLayoutId(int viewType) {
+                return R.layout.item_contacts_layout;
+            }
+
+            @Override
+            protected void onBindCommonView(final RBaseViewHolder holder, final int position, ContactsPickerHelper.ContactsInfo bean) {
+                holder.fillView(bean);
+                holder.v(R.id.item_layout).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        setSelectorPosition(position, (CompoundButton) holder.v(R.id.checkbox));
+                    }
+                });
+                Glide.with(MainActivity.this)
+                        .load(ContactsPickerHelper.getPhotoByte(getContentResolver(), bean.contactId))
+                        .transform(new GlideCircleTransform(MainActivity.this))
+                        .placeholder(R.mipmap.ic_launcher)
+                        .into(holder.imgV(R.id.image_view));
+            }
+
+            @Override
+            protected void onBindModelView(int model, boolean isSelector, RBaseViewHolder holder, int position, ContactsPickerHelper.ContactsInfo bean) {
+                ((CompoundButton) holder.v(R.id.checkbox)).setChecked(isSelector);
+            }
+
+            @Override
+            protected void onBindNormalView(RBaseViewHolder holder, int position, ContactsPickerHelper.ContactsInfo bean) {
+
+            }
+        };
+        mModelAdapter.setModel(RModelAdapter.MODEL_MULTI);//多选模式
+        mRecyclerView.setAdapter(mModelAdapter);
     }
 }

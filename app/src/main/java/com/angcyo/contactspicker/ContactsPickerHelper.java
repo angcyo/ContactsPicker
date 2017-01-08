@@ -10,36 +10,94 @@ import android.text.TextUtils;
 
 import com.github.promeg.pinyinhelper.Pinyin;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import rx.Observable;
+import rx.Subscriber;
+
+import static android.database.Cursor.FIELD_TYPE_STRING;
+
 /**
  * Created by angcyo on 2017-01-08.
  */
 
 public class ContactsPickerHelper {
-    public static void getContactsList(Context context) {
+
+    /**
+     * 返回一个可以订阅的对象
+     */
+    public static Observable<List<ContactsInfo>> getContactsListObservable(final Context context) {
+        return Observable.create(new Observable.OnSubscribe<List<ContactsInfo>>() {
+            @Override
+            public void call(Subscriber<? super List<ContactsInfo>> subscriber) {
+                subscriber.onStart();
+                final List<ContactsInfo> contactsList = getContactsList(context);
+                if (contactsList == null) {
+                    subscriber.onNext(new ArrayList<ContactsInfo>());
+                } else {
+                    subscriber.onNext(contactsList);
+                }
+                subscriber.onCompleted();
+            }
+        });
+    }
+
+    /**
+     * 同步返回联系人列表
+     */
+    public static List<ContactsInfo> getContactsList(Context context) {
         final ContentResolver contentResolver = context.getContentResolver();
         Cursor cursor = contentResolver.query(ContactsContract.Contacts.CONTENT_URI, new String[]{"_id"}, null, null, null);
-        L.w("联系人总数量:" + cursor.getCount()); //就是联系人的总数
 
-        //枚举所有联系人的id
-        if (cursor.getCount() > 0) {
-            int count = 0;
-            if (cursor.moveToFirst()) {
-                do {
-                    int contactIdIndex = cursor.getColumnIndex(ContactsContract.Contacts._ID);//获取 id 所在列的索引
-                    String contactId = cursor.getString(contactIdIndex);//联系人id
+        List<ContactsInfo> contactsInfos = new ArrayList<>();
 
-                    L.e("-------------------------" + count + "----------------------");
-                    L.w("联系人ID:" + contactId);
-                    final String name = getData1(contentResolver, contactId, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE);
-                    L.w("联系人名称:" + Pinyin.toPinyin(name.charAt(0)).toUpperCase().charAt(0) + " " + name);
-                    L.w("联系人电话:" + getData1(contentResolver, contactId, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE));
+        if (cursor != null) {
+            //枚举所有联系人的id
+            if (cursor.getCount() > 0) {
+                L.w("联系人总数量:" + cursor.getCount()); //就是联系人的总数
+                int count = 0;
+                if (cursor.moveToFirst()) {
+                    do {
+                        int contactIdIndex = cursor.getColumnIndex(ContactsContract.Contacts._ID);//获取 id 所在列的索引
+                        String contactId = cursor.getString(contactIdIndex);//联系人id
+
+                        final List<String> phones = getData1(contentResolver, contactId, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE);
+                        if (phones.isEmpty()) {
+                            continue;
+                        } else {
+                            String name;
+                            final List<String> names = getData1(contentResolver, contactId, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE);
+                            if (names.isEmpty()) {
+                                name = phones.get(0);
+                            } else {
+                                name = names.get(0);
+                            }
+
+                            //相同联系人的不同手机号码视为不同的联系人
+                            for (String phone : phones) {
+                                ContactsInfo io = new ContactsInfo();
+                                io.contactId = contactId;
+                                io.name = name;
+                                io.phone = phone;
+                                io.letter = String.valueOf(Pinyin.toPinyin(name.charAt(0)).toUpperCase().charAt(0));
+                                contactsInfos.add(io);
+                            }
+                        }
+
+//                    L.e("-------------------------" + count + "----------------------");
+//                    L.w("联系人ID:" + contactId);
+//                    final String name = getData1(contentResolver, contactId, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE);
+//                    L.w("联系人名称:" + Pinyin.toPinyin(name.charAt(0)).toUpperCase().charAt(0) + " " + name);
+//                    L.w("联系人电话:" + getData1(contentResolver, contactId, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE));
 //                    logData(contentResolver, contactId);
-                    count++;
-                } while (cursor.moveToNext());
+//                    count++;
+                    } while (cursor.moveToNext());
+                }
             }
+            cursor.close();
         }
-
-        cursor.close();
+        return contactsInfos;
     }
 
     /**
@@ -47,6 +105,15 @@ public class ContactsPickerHelper {
      */
     public static Bitmap getPhoto(final ContentResolver contentResolver, String contactId) {
         Bitmap photo = null;
+        byte[] bytes = getPhotoByte(contentResolver, contactId);
+        if (bytes != null) {
+            photo = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        }
+        return photo;
+    }
+
+    public static byte[] getPhotoByte(final ContentResolver contentResolver, String contactId) {
+        byte[] bytes = null;
         Cursor dataCursor = contentResolver.query(ContactsContract.Data.CONTENT_URI,
                 new String[]{"data15"},
                 ContactsContract.Data.CONTACT_ID + "=?" + " AND "
@@ -55,21 +122,18 @@ public class ContactsPickerHelper {
         if (dataCursor != null) {
             if (dataCursor.getCount() > 0) {
                 dataCursor.moveToFirst();
-                byte[] bytes = dataCursor.getBlob(dataCursor.getColumnIndex("data15"));
-                if (bytes != null) {
-                    photo = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                }
+                bytes = dataCursor.getBlob(dataCursor.getColumnIndex("data15"));
             }
             dataCursor.close();
         }
-        return photo;
+        return bytes;
     }
 
     /**
      * 根据MIMETYPE类型, 返回对应联系人的data1字段的数据
      */
-    private static String getData1(final ContentResolver contentResolver, String contactId, final String mimeType) {
-        StringBuilder stringBuilder = new StringBuilder();
+    private static List<String> getData1(final ContentResolver contentResolver, String contactId, final String mimeType) {
+        List<String> dataList = new ArrayList<>();
 
         Cursor dataCursor = contentResolver.query(ContactsContract.Data.CONTENT_URI,
                 new String[]{ContactsContract.Data.DATA1},
@@ -80,21 +144,21 @@ public class ContactsPickerHelper {
             if (dataCursor.getCount() > 0) {
                 if (dataCursor.moveToFirst()) {
                     do {
-                        final String data = dataCursor.getString(dataCursor.getColumnIndex(ContactsContract.Data.DATA1));
-                        if (TextUtils.isEmpty(data)) {
-                            continue;
-                            //stringBuilder.append("空");
-                        } else {
-                            stringBuilder.append(data);
+                        final int columnIndex = dataCursor.getColumnIndex(ContactsContract.Data.DATA1);
+                        final int type = dataCursor.getType(columnIndex);
+                        if (type == FIELD_TYPE_STRING) {
+                            final String data = dataCursor.getString(columnIndex);
+                            if (!TextUtils.isEmpty(data)) {
+                                dataList.add(data);
+                            }
                         }
-                        stringBuilder.append("_");//多个值,之间的分隔符.可以自定义;
                     } while (dataCursor.moveToNext());
                 }
             }
             dataCursor.close();
         }
 
-        return stringBuilder.subSequence(0, Math.max(0, stringBuilder.length() - 1)).toString();
+        return dataList;
     }
 
     /**
@@ -133,7 +197,7 @@ public class ContactsPickerHelper {
                             } else if (type == Cursor.FIELD_TYPE_INTEGER) {
                                 ty = "INTEGER";
                                 data = String.valueOf(cursor.getInt(columnIndex));
-                            } else if (type == Cursor.FIELD_TYPE_STRING) {
+                            } else if (type == FIELD_TYPE_STRING) {
                                 ty = "STRING";
                                 data = cursor.getString(columnIndex);
                             }
@@ -146,5 +210,26 @@ public class ContactsPickerHelper {
             }
             cursor.close();
         }
+    }
+
+    public static class ContactsInfo {
+        /**
+         * 联系人的ID
+         */
+        public String contactId;
+
+        /**
+         * 联系人名称的首字母
+         */
+        public String letter;
+
+        /**
+         * 联系人显示的名称
+         */
+        public String name;
+        /**
+         * 联系人的手机号码, 有可能是多个. 同一个联系人的不同手机号码,视为多个联系人
+         */
+        public String phone;
     }
 }
