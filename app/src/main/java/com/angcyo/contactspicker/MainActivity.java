@@ -4,7 +4,9 @@ import android.Manifest;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.Toast;
@@ -98,6 +100,15 @@ public class MainActivity extends AppCompatActivity {
         initView();
     }
 
+    private void scrollToLetter(String letter) {
+        for (int i = 0; i < mModelAdapter.getAllDatas().size(); i++) {
+            if (TextUtils.equals(letter, mModelAdapter.getAllDatas().get(i).letter)) {
+                ((LinearLayoutManager) mRecyclerView.getLayoutManager()).scrollToPositionWithOffset(i, 0);
+                break;
+            }
+        }
+    }
+
     private void initView() {
         mRecyclerView = (RRecyclerView) findViewById(R.id.recycler_view);
         mModelAdapter = new RModelAdapter<ContactsPickerHelper.ContactsInfo>(this) {
@@ -135,5 +146,13 @@ public class MainActivity extends AppCompatActivity {
         };
         mModelAdapter.setModel(RModelAdapter.MODEL_MULTI);//多选模式
         mRecyclerView.setAdapter(mModelAdapter);
+
+        WaveSideBarView sideBarView = (WaveSideBarView) findViewById(R.id.side_bar_view);
+        sideBarView.setOnTouchLetterChangeListener(new WaveSideBarView.OnTouchLetterChangeListener() {
+            @Override
+            public void onLetterChange(String letter) {
+                scrollToLetter(letter);
+            }
+        });
     }
 }
