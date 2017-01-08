@@ -12,6 +12,8 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.tbruyelle.rxpermissions.RxPermissions;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import rx.Subscriber;
@@ -23,6 +25,16 @@ public class MainActivity extends AppCompatActivity {
 
     private RRecyclerView mRecyclerView;
     private RModelAdapter<ContactsPickerHelper.ContactsInfo> mModelAdapter;
+
+    private static List<ContactsPickerHelper.ContactsInfo> sort(List<ContactsPickerHelper.ContactsInfo> list) {
+        Collections.sort(list, new Comparator<ContactsPickerHelper.ContactsInfo>() {
+            @Override
+            public int compare(ContactsPickerHelper.ContactsInfo o1, ContactsPickerHelper.ContactsInfo o2) {
+                return o1.letter.compareTo(o2.letter);
+            }
+        });
+        return list;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
 
                                                 @Override
                                                 public void onNext(List<ContactsPickerHelper.ContactsInfo> contactsInfos) {
-                                                    mModelAdapter.resetData(contactsInfos);
+                                                    mModelAdapter.resetData(sort(contactsInfos));
                                                 }
                                             });
                                 }
