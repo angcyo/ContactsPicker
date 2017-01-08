@@ -127,6 +127,12 @@ public class MainActivity extends AppCompatActivity {
                         setSelectorPosition(position, (CompoundButton) holder.v(R.id.checkbox));
                     }
                 });
+                holder.cV(R.id.checkbox).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        setSelectorPosition(position);
+                    }
+                });
                 Glide.with(MainActivity.this)
                         .load(ContactsPickerHelper.getPhotoByte(getContentResolver(), bean.contactId))
                         .transform(new GlideCircleTransform(MainActivity.this))
