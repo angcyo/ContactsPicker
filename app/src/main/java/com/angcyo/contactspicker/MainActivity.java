@@ -175,6 +175,13 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public String getGroupText(int position) {
+                //空分组测试
+//                if (position == 0 || position == 1) {
+//                    return "";
+//                }
+//                if (position > 5 && position < 200) {
+//                    return "";
+//                }
                 return mModelAdapter.getAllDatas().get(position).letter;
             }
 

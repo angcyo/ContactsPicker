@@ -26,18 +26,23 @@ public class RGroupItemDecoration extends RecyclerView.ItemDecoration {
             return;
         }
 
+        String groupText;
+        String preGroupText;
         for (int i = 0; i < parent.getChildCount(); i++) {
             final View view = parent.getChildAt(i);
             final RecyclerView.LayoutParams layoutParams = (RecyclerView.LayoutParams) view.getLayoutParams();
             final int adapterPosition = layoutParams.getViewAdapterPosition();
+            groupText = mGroupCallBack.getGroupText(adapterPosition);
+            if (TextUtils.isEmpty(groupText)) {
+                continue;
+            }
             if (adapterPosition == 0) {
                 //第一个位置, 肯定是有分组信息的
                 mGroupCallBack.onGroupDraw(c, view, adapterPosition);
             } else {
                 //上一个分组信息
-                String preGroupText = mGroupCallBack.getGroupText(adapterPosition - 1);
+                preGroupText = mGroupCallBack.getGroupText(adapterPosition - 1);
                 //当前的分组信息
-                String groupText = mGroupCallBack.getGroupText(adapterPosition);
                 if (!TextUtils.equals(preGroupText, groupText)) {
                     //如果和上一个分组信息不相等
                     mGroupCallBack.onGroupDraw(c, view, adapterPosition);
@@ -57,6 +62,10 @@ public class RGroupItemDecoration extends RecyclerView.ItemDecoration {
         final View view = parent.getChildAt(0);
         final RecyclerView.LayoutParams layoutParams = (RecyclerView.LayoutParams) view.getLayoutParams();
         final int adapterPosition = layoutParams.getViewAdapterPosition();
+        String groupText = mGroupCallBack.getGroupText(adapterPosition);
+        if (TextUtils.isEmpty(groupText)) {
+            return;
+        }
         if (adapterPosition == 0) {
             //第一个位置, 肯定是有分组信息的
             if ((isHorizontal ? view.getLeft() : view.getTop()) <= 0) {
@@ -69,8 +78,6 @@ public class RGroupItemDecoration extends RecyclerView.ItemDecoration {
                 //下一个分组信息
                 String nextGroupText = mGroupCallBack.getGroupText(adapterPosition + 1);
                 //当前的分组信息
-                String groupText = mGroupCallBack.getGroupText(adapterPosition);
-
                 final View nextView = parent.getChildAt(1);
                 if (!TextUtils.equals(nextGroupText, groupText)) {
                     if ((isHorizontal ? nextView.getLeft() : nextView.getTop()) <= 0) {
@@ -101,6 +108,11 @@ public class RGroupItemDecoration extends RecyclerView.ItemDecoration {
 
         final RecyclerView.LayoutParams layoutParams = (RecyclerView.LayoutParams) view.getLayoutParams();
         final int adapterPosition = layoutParams.getViewAdapterPosition();
+        String groupText = mGroupCallBack.getGroupText(adapterPosition);
+        if (TextUtils.isEmpty(groupText)) {
+            outRect.set(0, 0, 0, 0);
+            return;
+        }
         if (adapterPosition == 0) {
             //第一个位置, 肯定是有分组信息的
             if (((LinearLayoutManager) layoutManager).getOrientation() == LinearLayoutManager.HORIZONTAL) {
@@ -112,7 +124,6 @@ public class RGroupItemDecoration extends RecyclerView.ItemDecoration {
             //上一个分组信息
             String preGroupText = mGroupCallBack.getGroupText(adapterPosition - 1);
             //当前的分组信息
-            String groupText = mGroupCallBack.getGroupText(adapterPosition);
             if (!TextUtils.equals(preGroupText, groupText)) {
                 //如果和上一个分组信息不相等
                 if (((LinearLayoutManager) layoutManager).getOrientation() == LinearLayoutManager.HORIZONTAL) {
