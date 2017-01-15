@@ -17,4 +17,9 @@
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light"/>
 
+    <style name="BaseToastAnimation">
+        <item name="android:windowExitAnimation">@anim/base_tran_top_exit</item>
+        <item name="android:windowEnterAnimation">@anim/base_tran_top_enter</item>
+    </style>
+
 </resources>

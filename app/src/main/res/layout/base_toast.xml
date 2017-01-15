@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.angcyo.contactspicker.widget.ToastLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/base_toast_root_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/base_toast_shape">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginLeft="10dp"
+        android:gravity="center"
+        android:minHeight="@dimen/action_bar_height"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/base_toast_image_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/base_ok"/>
+
+        <TextView
+            android:id="@+id/base_toast_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="6dp"
+            android:textColor="#999999"
+            android:textSize="14sp"
+            tools:text="测试内容"/>
+    </LinearLayout>
+
+</com.angcyo.contactspicker.widget.ToastLayout>

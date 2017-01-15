@@ -10,4 +10,9 @@
     <dimen name="textSize_sidebar_padding">20sp</dimen>
     <dimen name="radius_sidebar">20dp</dimen>
     <dimen name="ball_radius_sidebar">24dp</dimen>
+
+    <dimen name="status_bar_height">30dp</dimen>
+    <dimen name="action_bar_height">48dp</dimen>
+    <dimen name="title_bar_height">70dp</dimen>
+    <dimen name="base_toast_shadow_height">10dp</dimen>
 </resources>

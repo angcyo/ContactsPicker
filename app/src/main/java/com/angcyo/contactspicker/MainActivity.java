@@ -1,16 +1,30 @@
 package com.angcyo.contactspicker;
 
 import android.Manifest;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.Toolbar;
+import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.CompoundButton;
-import android.widget.Toast;
 
+import com.angcyo.contactspicker.util.ContactsPickerHelper;
+import com.angcyo.contactspicker.util.T2;
+import com.angcyo.contactspicker.widget.GlideCircleTransform;
+import com.angcyo.contactspicker.widget.RBaseViewHolder;
+import com.angcyo.contactspicker.widget.RGroupItemDecoration;
+import com.angcyo.contactspicker.widget.RModelAdapter;
+import com.angcyo.contactspicker.widget.RRecyclerView;
+import com.angcyo.contactspicker.widget.WaveSideBarView;
 import com.bumptech.glide.Glide;
 import com.tbruyelle.rxpermissions.RxPermissions;
 
@@ -53,47 +67,7 @@ public class MainActivity extends AppCompatActivity {
 //                        ContactsContract.Contacts.CONTENT_URI);
 //                MainActivity.this.startActivityForResult(intent, 1);
 
-                new RxPermissions(MainActivity.this)
-                        .request(Manifest.permission.WRITE_CONTACTS)
-                        .subscribe(new Action1<Boolean>() {
-                            @Override
-                            public void call(Boolean aBoolean) {
-                                if (aBoolean) {
-//                                    ContactsPickerHelper.getContactsList(MainActivity.this);
-                                    //imageView.setImageBitmap(getPhoto(getContentResolver(), "517"));
-//                                    Glide.with(MainActivity.this).load(getPhotoByte(getContentResolver(), "518"));
-
-                                    ContactsPickerHelper
-                                            .getContactsListObservable(MainActivity.this)
-                                            .subscribeOn(Schedulers.computation())
-                                            .observeOn(AndroidSchedulers.mainThread())
-                                            .subscribe(new Subscriber<List<ContactsPickerHelper.ContactsInfo>>() {
-
-                                                @Override
-                                                public void onStart() {
-                                                    super.onStart();
-                                                    Toast.makeText(MainActivity.this, "开始扫描联系人", Toast.LENGTH_SHORT).show();
-                                                }
-
-                                                @Override
-                                                public void onCompleted() {
-                                                    Toast.makeText(MainActivity.this, "扫描完成", Toast.LENGTH_SHORT).show();
-                                                }
-
-                                                @Override
-                                                public void onError(Throwable e) {
-
-                                                }
-
-                                                @Override
-                                                public void onNext(List<ContactsPickerHelper.ContactsInfo> contactsInfos) {
-                                                    mModelAdapter.resetData(sort(contactsInfos));
-                                                }
-                                            });
-                                }
-                            }
-                        });
-
+                startLoading();
             }
         });
 
@@ -101,6 +75,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void scrollToLetter(String letter) {
+        if (TextUtils.equals(letter, "#")) {
+            ((LinearLayoutManager) mRecyclerView.getLayoutManager()).scrollToPositionWithOffset(0, 0);
+            return;
+        }
         for (int i = 0; i < mModelAdapter.getAllDatas().size(); i++) {
             if (TextUtils.equals(letter, mModelAdapter.getAllDatas().get(i).letter)) {
                 ((LinearLayoutManager) mRecyclerView.getLayoutManager()).scrollToPositionWithOffset(i, 0);
@@ -119,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            protected void onBindCommonView(final RBaseViewHolder holder, final int position, ContactsPickerHelper.ContactsInfo bean) {
+            protected void onBindCommonView(final RBaseViewHolder holder, final int position, final ContactsPickerHelper.ContactsInfo bean) {
                 holder.fillView(bean);
                 holder.v(R.id.item_layout).setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -134,10 +112,27 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
                 Glide.with(MainActivity.this)
-                        .load(ContactsPickerHelper.getPhotoByte(getContentResolver(), bean.contactId))
+                        .load(ContactsPickerHelper.getPhotoByte(MainActivity.this, bean.contactId))
+//                        .load(ContactsPickerHelper.getPhoto(getContentResolver(), bean.contactId))
                         .transform(new GlideCircleTransform(MainActivity.this))
                         .placeholder(R.mipmap.ic_launcher)
                         .into(holder.imgV(R.id.image_view));
+
+//                Observable.just("")
+//                        .map(new Func1<Object, Bitmap>() {
+//                            @Override
+//                            public Bitmap call(Object o) {
+//                                return ContactsPickerHelper.getPhoto(getContentResolver(), bean.contactId);
+//                            }
+//                        })
+//                        .subscribeOn(Schedulers.io())
+//                        .observeOn(AndroidSchedulers.mainThread())
+//                        .subscribe(new Action1<Bitmap>() {
+//                            @Override
+//                            public void call(Bitmap bitmap) {
+//                                holder.imageView(R.id.image_view).setImageBitmap(bitmap);
+//                            }
+//                        });
             }
 
             @Override
@@ -160,5 +155,125 @@ public class MainActivity extends AppCompatActivity {
                 scrollToLetter(letter);
             }
         });
+
+        final TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        paint.setTextSize(getResources().getDisplayMetrics().scaledDensity * 20);
+        final RectF rectF = new RectF();
+        final Rect rect = new Rect();
+        mRecyclerView.addItemDecoration(new RGroupItemDecoration(new RGroupItemDecoration.GroupCallBack() {
+            @Override
+            public int getGroupHeight() {
+                return dp2px(20);
+            }
+
+            @Override
+            public String getGroupText(int position) {
+                return mModelAdapter.getAllDatas().get(position).letter;
+            }
+
+            @Override
+            public void onGroupDraw(Canvas canvas, View view, int position) {
+                paint.setColor(Color.parseColor("#969696"));
+
+                if (isHorizontal()) {
+                    rectF.set(view.getLeft() - getGroupHeight(), view.getTop(), view.getLeft(), view.getBottom());
+                } else {
+                    rectF.set(view.getLeft(), view.getTop() - getGroupHeight(), view.getRight(), view.getTop());
+                }
+
+                canvas.drawRoundRect(rectF, dp2px(2), dp2px(2), paint);
+                paint.setColor(Color.WHITE);
+
+                final String letter = mModelAdapter.getAllDatas().get(position).letter;
+                paint.getTextBounds(letter, 0, letter.length(), rect);
+
+                if (isHorizontal()) {
+                    canvas.drawText(letter, view.getLeft() - getGroupHeight() / 2 - rect.width() / 2, view.getBottom() - dp2px(10), paint);
+                } else {
+                    canvas.drawText(letter, view.getLeft() + dp2px(10), view.getTop() - (getGroupHeight() - rect.height()) / 2, paint);
+                }
+            }
+
+            @Override
+            public void onGroupOverDraw(Canvas canvas, View view, int position, int offset) {
+                paint.setColor(Color.parseColor("#969696"));
+
+                if (isHorizontal()) {
+                    rectF.set(-offset, view.getTop(), getGroupHeight() - offset, view.getBottom());
+                } else {
+                    rectF.set(view.getLeft(), -offset, view.getRight(), getGroupHeight() - offset);
+                }
+
+                canvas.drawRoundRect(rectF, dp2px(2), dp2px(2), paint);
+                paint.setColor(Color.WHITE);
+
+                final String letter = mModelAdapter.getAllDatas().get(position).letter;
+                paint.getTextBounds(letter, 0, letter.length(), rect);
+
+                if (isHorizontal()) {
+                    canvas.drawText(letter, (getGroupHeight() - rect.width()) / 2 - offset, view.getBottom() - dp2px(10), paint);
+                } else {
+                    canvas.drawText(letter, view.getLeft() + dp2px(10), (getGroupHeight() + rect.height()) / 2 - offset, paint);
+                }
+            }
+        }));
+    }
+
+    private boolean isHorizontal() {
+        return ((LinearLayoutManager) mRecyclerView.getLayoutManager()).getOrientation() == LinearLayoutManager.HORIZONTAL;
+    }
+
+    private int dp2px(int dp) {
+        return (int) (getResources().getDisplayMetrics().density) * dp;
+    }
+
+
+    @Override
+    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        startLoading();
+    }
+
+    private void startLoading() {
+        new RxPermissions(MainActivity.this)
+                .request(Manifest.permission.WRITE_CONTACTS)
+                .subscribe(new Action1<Boolean>() {
+                    @Override
+                    public void call(Boolean aBoolean) {
+                        if (aBoolean) {
+//                                    ContactsPickerHelper.getContactsList(MainActivity.this);
+                            //imageView.setImageBitmap(getPhoto(getContentResolver(), "517"));
+//                                    Glide.with(MainActivity.this).load(getPhotoByte(getContentResolver(), "518"));
+
+                            ContactsPickerHelper
+                                    .getContactsListObservable(MainActivity.this)
+                                    .subscribeOn(Schedulers.computation())
+                                    .observeOn(AndroidSchedulers.mainThread())
+                                    .subscribe(new Subscriber<List<ContactsPickerHelper.ContactsInfo>>() {
+
+                                        @Override
+                                        public void onStart() {
+                                            super.onStart();
+                                            T2.show(MainActivity.this, "开始扫描联系人");
+                                        }
+
+                                        @Override
+                                        public void onCompleted() {
+                                        }
+
+                                        @Override
+                                        public void onError(Throwable e) {
+
+                                        }
+
+                                        @Override
+                                        public void onNext(List<ContactsPickerHelper.ContactsInfo> contactsInfos) {
+                                            mModelAdapter.resetData(sort(contactsInfos));
+                                            T2.show(MainActivity.this, "扫描完成:共" + contactsInfos.size() + "个联系人");
+                                        }
+                                    });
+                        }
+                    }
+                });
     }
 }

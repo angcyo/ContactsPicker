@@ -10,12 +10,13 @@
     tools:context="com.angcyo.contactspicker.MainActivity"
     tools:showIn="@layout/activity_main">
 
-    <com.angcyo.contactspicker.RRecyclerView
+    <com.angcyo.contactspicker.widget.RRecyclerView
         android:id="@+id/recycler_view"
         android:layout_width="match_parent"
+        android:tag="V"
         android:layout_height="match_parent"/>
 
-    <com.angcyo.contactspicker.WaveSideBarView
+    <com.angcyo.contactspicker.widget.WaveSideBarView
         android:id="@+id/side_bar_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
