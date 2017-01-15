@@ -235,6 +235,22 @@ public abstract class RModelAdapter<T> extends RBaseAdapter<T> {
         return integers;
     }
 
+    /**
+     * 返回所有选中的数据
+     */
+    public List<T> getSelectorData() {
+        if (mAllDatas == null) {
+            return null;
+        }
+        List<T> list = new ArrayList<>();
+        for (int i = 0; i < mAllDatas.size(); i++) {
+            if (mSelector.contains(i)) {
+                list.add(mAllDatas.get(i));
+            }
+        }
+        return list;
+    }
+
     public void setSelectorPosition(int position, CompoundButton compoundButton) {
         final boolean selector = isPositionSelector(position);
 

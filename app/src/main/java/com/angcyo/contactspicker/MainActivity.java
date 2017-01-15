@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.CompoundButton;
 
 import com.angcyo.contactspicker.util.ContactsPickerHelper;
+import com.angcyo.contactspicker.util.L;
 import com.angcyo.contactspicker.util.T2;
 import com.angcyo.contactspicker.widget.GlideCircleTransform;
 import com.angcyo.contactspicker.widget.RBaseViewHolder;
@@ -67,7 +68,13 @@ public class MainActivity extends AppCompatActivity {
 //                        ContactsContract.Contacts.CONTENT_URI);
 //                MainActivity.this.startActivityForResult(intent, 1);
 
-                startLoading();
+//                startLoading();
+
+                final List<ContactsPickerHelper.ContactsInfo> selectorData = mModelAdapter.getSelectorData();
+                L.w("共选中:" + selectorData.size());
+                for (int i = 0; i < selectorData.size(); i++) {
+                    L.w(i + "-->" + selectorData.get(i).toString());
+                }
             }
         });
 

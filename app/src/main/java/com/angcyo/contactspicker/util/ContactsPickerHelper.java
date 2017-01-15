@@ -249,5 +249,10 @@ public class ContactsPickerHelper {
          * 联系人的手机号码, 有可能是多个. 同一个联系人的不同手机号码,视为多个联系人
          */
         public String phone;
+
+        @Override
+        public String toString() {
+            return " [" + contactId + "]" + " [" + letter + "]" + " [" + name + "]" + " [" + phone + "]";
+        }
     }
 }
